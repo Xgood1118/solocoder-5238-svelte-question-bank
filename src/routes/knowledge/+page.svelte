@@ -44,9 +44,9 @@
 		editingId = null;
 	}
 
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Enter') finishRename();
-		else if (e.key === 'Escape') editingId = null;
+	function handleKeydown(e: CustomEvent<KeyboardEvent>) {
+		if (e.detail.key === 'Enter') finishRename();
+		else if (e.detail.key === 'Escape') editingId = null;
 	}
 
 	function openAddModal(parentId: string | null) {

@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { onMount, onDestroy, derived } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
+	import { derived } from 'svelte/store';
 	import type { Question, QuestionOption, QuestionType, DuplicateCandidate } from '$lib/types';
-	import { questions, knowledgeRoot, currentUser, addQuestion, updateQuestion, findDuplicates, flattenNodes } from '$lib/stores';
+	import { questions, knowledgeRoot, currentUser, addQuestion, updateQuestion, findDuplicates } from '$lib/stores';
 	import { generateId } from '$lib/utils/text';
-	import { findNode, getAllDescendantIds } from '$lib/utils/knowledgeTree';
+	import { findNode, getAllDescendantIds, flattenNodes } from '$lib/utils/knowledgeTree';
 	import QuestionPreview from '$lib/components/QuestionPreview.svelte';
 	import RichText from '$lib/components/RichText.svelte';
 
@@ -35,11 +36,11 @@
 		return flattenNodes($root).filter(n => n.id !== 'root');
 	});
 
-	$: filteredKpNodes = allKpNodes.filter(n =>
+	$: filteredKpNodes = $allKpNodes.filter(n =>
 		n.name.toLowerCase().includes(knowledgeSearch.toLowerCase())
 	);
 
-	$: previewQuestion: Question = {
+	$: previewQuestion = {
 		id: editingId || 'preview',
 		type,
 		stem,
@@ -56,7 +57,7 @@
 		versions: [],
 		usageHistory: [],
 		isLocked: false
-	};
+	} as Question;
 
 	function initOptions() {
 		options = [
@@ -306,11 +307,11 @@
 		if (questionId) {
 			loadQuestion(questionId);
 		}
-	});
 
-	onDestroy(() => {
-		document.removeEventListener('paste', handlePaste);
-		if (duplicateDebounce) clearTimeout(duplicateDebounce);
+		return () => {
+			document.removeEventListener('paste', handlePaste);
+			if (duplicateDebounce) clearTimeout(duplicateDebounce);
+		};
 	});
 
 	$: if (questionId && $questions.length > 0) {

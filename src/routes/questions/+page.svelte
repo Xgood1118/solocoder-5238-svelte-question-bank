@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount, derived } from 'svelte';
+	import { onMount } from 'svelte';
+	import { derived } from 'svelte/store';
 	import { goto } from '$app/navigation';
 	import type { Question, KnowledgeNode } from '$lib/types';
 	import {
@@ -117,10 +118,11 @@
 	}
 
 	function handleRollback(versionId: string) {
-		if (!showDetail) return;
+		const detail = showDetail;
+		if (!detail) return;
 		if (confirm('确定要回滚到这个版本吗？当前内容将会被覆盖。')) {
-			rollbackQuestion(showDetail.id, versionId);
-			const updated = $questions.find(q => q.id === showDetail.id);
+			rollbackQuestion(detail.id, versionId);
+			const updated = $questions.find(q => q.id === detail.id);
 			if (updated) showDetail = updated;
 		}
 	}
@@ -285,6 +287,7 @@
 			{:else}
 				<div class="question-grid">
 					{#each searchResults as q (q.id)}
+						{@const thumb = getThumbnail(q)}
 						<div class="question-card" on:click={() => showDetail = q}>
 							<div class="card-header">
 								<span class="badge" class:badge-primary={q.type === 'choice'}
@@ -307,7 +310,6 @@
 								{/if}
 							</div>
 
-							{@const thumb = getThumbnail(q)}
 							{#if thumb}
 								<div class="card-thumb">
 									<img src={thumb} alt="缩略图" />
@@ -341,6 +343,7 @@
 	</div>
 
 	{#if showDetail}
+		{@const detail = showDetail}
 		<div class="modal-overlay" on:click={() => showDetail = null}>
 			<div class="modal detail-modal" on:click|stopPropagation>
 				<div class="modal-header">
@@ -350,12 +353,12 @@
 					</button>
 				</div>
 				<div class="modal-body">
-					<QuestionPreview question={showDetail} showAnswer={true} />
+					<QuestionPreview question={detail} showAnswer={true} />
 
-					{#if showDetail.usageHistory.length > 0}
+					{#if detail.usageHistory.length > 0}
 						<div class="usage-history">
 							<h4>使用历史</h4>
-							{#each showDetail.usageHistory as record}
+							{#each detail.usageHistory as record}
 								<div class="usage-item">
 									<span class="usage-exam">{record.examName}</span>
 									<span class="usage-date">{new Date(record.examDate).toLocaleDateString()}</span>
@@ -367,11 +370,11 @@
 						</div>
 					{/if}
 
-					{#if showDetail.relatedQuestions.length > 0}
+					{#if detail.relatedQuestions.length > 0}
 						<div class="related-section">
 							<h4>关联题（变式题）</h4>
 							<div class="related-list">
-								{#each showDetail.relatedQuestions as rqId}
+								{#each detail.relatedQuestions as rqId}
 									{@const rq = $questions.find(x => x.id === rqId)}
 									{#if rq}
 										<div class="related-item" on:click={() => showDetail = rq}>
@@ -383,11 +386,11 @@
 						</div>
 					{/if}
 
-					{#if showDetail.versions.length > 0}
+					{#if detail.versions.length > 0}
 					<div class="versions-section">
 						<h4>历史版本</h4>
 						<div class="versions-list">
-							{#each [...showDetail.versions].reverse() as ver}
+							{#each [...detail.versions].reverse() as ver}
 								<div class="version-item">
 									<div class="version-info">
 										<span class="version-time">{new Date(ver.timestamp).toLocaleString()}</span>
@@ -404,17 +407,17 @@
 				{/if}
 				</div>
 				<div class="modal-footer">
-					{#if showDetail.isLocked && $isGroupLeader}
-						<button class="btn btn-warning" on:click={() => doUnlock(showDetail.id)}>
+					{#if detail.isLocked && $isGroupLeader}
+						<button class="btn btn-warning" on:click={() => doUnlock(detail.id)}>
 							<iconify-icon icon="mdi:lock-open"></iconify-icon>
 							解锁
 						</button>
 					{/if}
-					<button class="btn btn-danger" on:click={() => confirmDelete(showDetail)}>
+					<button class="btn btn-danger" on:click={() => confirmDelete(detail)}>
 						<iconify-icon icon="mdi:delete"></iconify-icon>
 						删除
 					</button>
-					<button class="btn btn-primary" on:click={() => goto(`/questions/${showDetail.id}/edit`)}>
+					<button class="btn btn-primary" on:click={() => goto(`/questions/${detail.id}/edit`)}>
 						<iconify-icon icon="mdi:pencil"></iconify-icon>
 						编辑
 					</button>
